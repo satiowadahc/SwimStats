@@ -12,53 +12,70 @@ from PyQt5 import QtCore
 
 
 class Snooper(QtCore.QObject):
+    """
+    Network Listener for Messages on the network from any Omnisport 2000
+    """
     message = QtCore.pyqtSignal(int, str)
 
     def __init__(self):
-        super(Snooper, self).__init__()
-        UDP_IP = "0.0.0.0"
-        UDP_PORT = 21000
+        QtCore.QObject.__init__(self)
+        udp_ip = "0.0.0.0"
+        udp_port = 21000
 
         self.sock = socket.socket(socket.AF_INET,  # Internet
                                   socket.SOCK_DGRAM)  # UDP
-        self.sock.bind((UDP_IP, UDP_PORT))
+        self.sock.bind((udp_ip, udp_port))
         self.working = True
 
     def run(self):
+        """
+        QtCore Thread for multitasking
+        """
         print("Network Started")
         while self.working:
-            data, addr = self.sock.recvfrom(1024)
+            data, _ = self.sock.recvfrom(1024)
             # https://timingguys.com/topic/daktronics-rtd-protocol-reference?reply=588895125796619801#7507031073
             # <SYN> + HEADER + <SOH> + CONTROL + <STX> + TEXT + <EOT> + SUM + <ETB>
             # 0x16 + 20000000 + 0x01 + 004010<offset> + 0x02 + TEXT + 0x04 + CHECKSUM + 0x17
             # print(f"received message: {data} Length: {len(data)}")
-            try:
-                if len(data) >= 34:
-                    control, useful = data.split(b"\x02")
-                    offset = control[-4:]
-                    message = useful.split(b"\x17")[0][:-4]
-                    # print("Offset", offset, "Data", message)
-                    self.message.emit(int(offset), message.decode('utf-8'))
-            except Exception as e:
-                print(e)
+            if len(data) >= 34:
+                control, useful = data.split(b"\x02")
+                offset = control[-4:]
+                message = useful.split(b"\x17")[0][:-4]
+                # print("Offset", offset, "Data", message)
+                self.message.emit(int(offset), message.decode('utf-8'))
 
+    def stop(self):
+        """Stop the thread"""
+        self.working = False
 
 
 class FakeOmnisport:
+    """
+    Fake Messages from Daktronics Omnisport 2000
+    """
+
     def __init__(self):
-        UDP_IP = "127.0.0.1"
-        UDP_PORT = 21000
-        MESSAGE = b"Hello, World!"
+        self.udp_ip = "127.0.0.1"
+        self.udp_port = 21000
+        message = b"Hello, World!"
 
-        print("UDP target IP: %s" % UDP_IP)
-        print("UDP target port: %s" % UDP_PORT)
-        print("message: %s" % MESSAGE)
+        print(f"UDP target IP: {self.udp_ip}")
+        print(f"UDP target port: {self.udp_port}")
+        print(f"message: {self.udp_port}")
 
-        sock = socket.socket(socket.AF_INET,  # Internet
+        self.sock = socket.socket(socket.AF_INET,  # Internet
                              socket.SOCK_DGRAM)  # UDP
-        sock.sendto(MESSAGE, (UDP_IP, UDP_PORT))
+        self.sock.sendto(message, (self.udp_ip, self.udp_port))
+
+    def send(self, msg):
+        """Send Message to the network"""
+        self.sock.sendto(msg, (self.udp_ip, self.udp_port))
+
+    def fake_race(self, msg):
+        """ TODO: Send fake race data"""
+        raise NotImplementedError
 
 
 if __name__ == '__main__':
     testSnooper = Snooper()
-
