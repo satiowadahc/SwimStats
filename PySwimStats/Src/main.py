@@ -1,4 +1,4 @@
-x"""
+"""
 main.py
 
    Data Display Program for collecting stats out of an AllStats 5000 RTD interface
