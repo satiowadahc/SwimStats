@@ -8,19 +8,24 @@ Scoreboard.py
 
 """
 import sys
+import typing
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5.QtCore import Qt
 
 from records import SwimRecords
 
 
 class TableModel(QtCore.QAbstractTableModel):
+    """
+    TableModel abstraction for model-view controller
+    """
+
     def __init__(self, data, records):
         super(TableModel, self).__init__()
         self._data = data
         self._records = records
-        self._columen_headers = ["Swimmer", "Team", "Lane", "Place", "Time", "Lengths"]
+        self._column_headers = ["Swimmer", "Team", "Lane", "Place", "Time", "Lengths"]
 
     def data(self, index, role):
         if role == Qt.DisplayRole:
@@ -45,28 +50,40 @@ class TableModel(QtCore.QAbstractTableModel):
         """Required abstraction"""
         if role == QtCore.Qt.DisplayRole:
             if Qt_Orientation == QtCore.Qt.Horizontal:
-                return str(self._columen_headers[p_int])
+                return str(self._column_headers[p_int])
             if Qt_Orientation == Qt.Vertical:
                 return str(p_int)
+        if role == Qt.BackgroundRole:
+            return QtGui.QColor(0,0,0,0)
 
 
 class ScoreBoard:
+    """
+    Qt Widget to hold all data for a swimmeet
+    """
+
     def __init__(self):
+        # Qt Related
+        self.parent = None
+
+        # Header
         self.layout_event_heat = None
         self.event_num_label = None
         self.heat_num_label = None
         self.event_heat_space = None
-        self.table = None
-        self.parent = None
-        self.model = None
-        self.layout = None
         self.event_title1 = None
         self.event_title2 = None
         self.event_number = None
         self.heat_number = None
+        self.time = None
+
+        # Body
+        self.table = None
+        self.model = None
+        self.layout = None
 
     def setupUi(self, parent, data, records):
-
+        """Boiler plate required code"""
         self.parent = parent
 
         self.layout = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.TopToBottom, parent)
@@ -86,9 +103,9 @@ class ScoreBoard:
         self.heat_num_label.setText("H")
         self.heat_number = QtWidgets.QLabel()
         self.heat_number.setText("01")
-        self.event_heat_space = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.event_heat_space = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding,
+                                                      QtWidgets.QSizePolicy.Minimum)
         self.time = QtWidgets.QLabel()
-
 
         self.layout.addWidget(self.event_title1)
         self.layout.addWidget(self.event_title2)
@@ -101,10 +118,29 @@ class ScoreBoard:
         self.layout.addLayout(self.layout_event_heat)
 
         self.model = TableModel(data, records)
+
         self.table = QtWidgets.QTableView()
         self.table.setModel(self.model)
         self.table.setAttribute(Qt.WA_TranslucentBackground)
-        self.table.setStyleSheet("background: Translucent; QTableWidget::item {margin: 0px;}")
+        self.table.SelectionMode(self.table.NoSelection)
+
+        self.table.horizontalHeader().setAutoFillBackground(True)
+        self.table.horizontalHeader().setStyleSheet("::section {"
+                                                    "color: white;"
+                                                    "background-color: rgba(50,50,50,250); }")
+        self.table.verticalHeader().setAutoFillBackground(True)
+        self.table.verticalHeader().setStyleSheet("::section {"
+                                                  "color: white;"
+                                                  "background: rgba(50,50,50,250); }"
+                                                  )
+
+
+        self.table.setStyleSheet("background: Translucent; "
+                                 "color: white; "
+                                 "QTableWidget::item {margin: 0px;}; "
+                                 
+                                 "border: Translucent;")
+
         self.table.setMinimumSize(640, 400)
         self.table.setMaximumSize(640, 400)
 
@@ -115,10 +151,10 @@ class ScoreBoardWidget(QtWidgets.QWidget):
     """Display Current Positions from linuxcnc"""
 
     def __init__(
-        self,
-        parent: QtWidgets.QWidget = None,
-        records=None,
-        flags: QtCore.Qt.WindowFlags = QtCore.Qt.WindowFlags(),
+            self,
+            parent: QtWidgets.QWidget = None,
+            records=None,
+            flags: QtCore.Qt.WindowFlags = QtCore.Qt.WindowFlags(),
     ):
         super().__init__(parent, flags)
 
@@ -137,10 +173,12 @@ class ScoreBoardWidget(QtWidgets.QWidget):
 
         self.ui = ScoreBoard()
         self.ui.setupUi(self, data, records)
-        self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setStyleSheet("background: Translucent; color: white")
-        # self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint)
-        self.setWindowFlags(self.windowFlags())
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WA_NoSystemBackground, True)
+        # self.setWindowOpacity(0.6)
+        self.setStyleSheet("color: white;")
+        self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint)
+        # self.setWindowFlags(self.windowFlags())
         self.setFixedSize(self.ui.table.size())
 
 
